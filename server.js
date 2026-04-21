@@ -1,80 +1,38 @@
-const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
+const User = require("./models/user");
 
-
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-
-
-mongoose.connect("mongodb://127.0.0.1:27017/studentDB123")
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
-
-
-const Student = require("./models/Students");
-
-
-
-
-
-app.post("/Students", async (req, res) => {
+async function run() {
   try {
-    const student = new Student(req.body);
-    await student.save();
-    res.status(201).json(student);
+    await mongoose.connect("mongodb://127.0.0.1:27017/testdb1");
+    console.log("Connected to MongoDB");
+
+    const existingUser = await User.findOne({ email: "ssver@gmail.com" });
+
+    if (!existingUser) {
+      const user = new User({
+        name: "Shiva",
+        email: "ssver@gmail.com",
+        addresses: [
+          { street: "123 Main St", city: "New York", country: "USA" },
+          { street: "456 Elm St", city: "Boston", country: "USA" }
+        ]
+      });
+
+      await user.save();
+      console.log("User saved successfully!");
+    } else {
+      console.log("User already exists");
+    }
+
+    const users = await User.find().lean();
+    console.log("All Users:", JSON.stringify(users, null, 2));
+
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.log("Error:", err.message);
+  } finally {
+    await mongoose.disconnect();
+    console.log("Disconnected from MongoDB");
   }
-});
+}
 
-
-
-
-
-app.get("/Students", async (req, res) => {
-  const students = await Student.find();
-  res.json(students);
-});
-
-
-
-
-
-app.get("/Students/:rollNo", async (req, res) => {
-  const student = await Student.findOne({ rollNo: req.params.rollNo });
-  if (!student) return res.status(404).json({ message: "Not found" });
-  res.json(student);
-});
-
-
-
-
-
-app.put("/Students/:rollNo", async (req, res) => {
-  const student = await Student.findOneAndUpdate(
-    { rollNo: req.params.rollNo },
-    req.body,
-    { new: true }
-  );
-  res.json(student);
-});
-
-
-
-
-
-app.delete("/Students/:rollNo", async (req, res) => {
-  await Student.findOneAndDelete({ rollNo: req.params.rollNo });
-  res.json({ message: "Student deleted" });
-});
-
-
-
-
-
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
-});
+run();
